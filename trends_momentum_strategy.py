@@ -6,8 +6,8 @@ import alpaca_trade_api as tradeapi
 import time
 
 # Alpaca API credentials (replace with your actual credentials)
-API_KEY = 'your_api_key'
-API_SECRET = 'your_api_secret'
+API_KEY = 'PK3MF7TXZKJHVAD097IP'
+API_SECRET = 'OWuQ2FSZc39IK2VnNstNq3uDkFHof4nTXXXnuS0D'
 BASE_URL = 'https://paper-api.alpaca.markets'  # For paper trading, replace with live URL for live trading
 
 # Initialize Alpaca API with proper security measures
@@ -34,7 +34,7 @@ def trends_momentum_strategy(data, short_window=50, long_window=200):
         signals['signal'] = 0.0
         signals['short_mavg'] = data['Close'].rolling(window=short_window, min_periods=1).mean()
         signals['long_mavg'] = data['Close'].rolling(window=long_window, min_periods=1).mean()
-        signals['signal'][short_window:] = np.where(signals['short_mavg'][short_window:] > signals['long_mavg'][short_window:], 1.0, 0.0)
+        signals['signal'].iloc[short_window:] = np.where(signals['short_mavg'].iloc[short_window:] > signals['long_mavg'].iloc[short_window:], 1.0, 0.0)
         signals['positions'] = signals['signal'].diff()
         return signals
     except Exception as e:
