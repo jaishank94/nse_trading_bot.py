@@ -27,19 +27,43 @@ def fetch_data(symbol, start_date, end_date):
         print("Error fetching data:", e)
         return None
 
-# Function to implement Trends and Momentum Following strategy
-def trends_momentum_strategy(data, short_window=50, long_window=200):
+# Function to implement Enhanced Trends and Momentum Following strategy
+def enhanced_trends_momentum_strategy(data, short_window_range=(20, 60), long_window_range=(100, 300)):
     try:
+        best_short_window = None
+        best_long_window = None
+        best_performance = -float('inf')
+
+        # Parameter Optimization
+        for short_window in range(short_window_range[0], short_window_range[1] + 1, 5):
+            for long_window in range(long_window_range[0], long_window_range[1] + 1, 10):
+                signals = pd.DataFrame(index=data.index)
+                signals['signal'] = 0.0
+                signals['short_mavg'] = data['Close'].rolling(window=short_window, min_periods=1).mean()
+                signals['long_mavg'] = data['Close'].rolling(window=long_window, min_periods=1).mean()
+                signals['signal'].iloc[short_window:] = np.where(
+                    signals['short_mavg'].iloc[short_window:] > signals['long_mavg'].iloc[short_window:], 1.0, 0.0)
+                signals['positions'] = signals['signal'].diff()
+                
+                # Backtesting
+                if signals['positions'].sum() > best_performance:
+                    best_performance = signals['positions'].sum()
+                    best_short_window = short_window
+                    best_long_window = long_window
+        
+        # Generate signals using best parameters
         signals = pd.DataFrame(index=data.index)
         signals['signal'] = 0.0
-        signals['short_mavg'] = data['Close'].rolling(window=short_window, min_periods=1).mean()
-        signals['long_mavg'] = data['Close'].rolling(window=long_window, min_periods=1).mean()
-        signals['signal'].iloc[short_window:] = np.where(signals['short_mavg'].iloc[short_window:] > signals['long_mavg'].iloc[short_window:], 1.0, 0.0)
+        signals['short_mavg'] = data['Close'].rolling(window=best_short_window, min_periods=1).mean()
+        signals['long_mavg'] = data['Close'].rolling(window=best_long_window, min_periods=1).mean()
+        signals['signal'].iloc[best_short_window:] = np.where(
+            signals['short_mavg'].iloc[best_short_window:] > signals['long_mavg'].iloc[best_short_window:], 1.0, 0.0)
         signals['positions'] = signals['signal'].diff()
-        return signals
+        
+        return signals, best_short_window, best_long_window
     except Exception as e:
-        print("Error in Trends and Momentum Following strategy:", e)
-        return None
+        print("Error in Enhanced Trends and Momentum Following strategy:", e)
+        return None, None, None
 
 # Function to execute trades based on signals
 def execute_trades(signals, symbol, available_balance):
@@ -94,8 +118,11 @@ def main():
             data = fetch_data(symbol, start_date, end_date)
             
             if data is not None:
-                # Implement Trends and Momentum Following strategy
-                signals = trends_momentum_strategy(data)
+                # Implement Enhanced Trends and Momentum Following strategy
+                signals, best_short_window, best_long_window = enhanced_trends_momentum_strategy(data)
+                print("Best short window:", best_short_window)
+                print("Best long window:", best_long_window)
+                print("Signals:", signals)
                 
                 if signals is not None:
                     # Execute trades
